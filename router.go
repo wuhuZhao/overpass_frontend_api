@@ -3,13 +3,27 @@
 package main
 
 import (
+	"fmt"
 	"github.com/cloudwego/hertz/pkg/app/server"
-	handler "github.com/wuhuZhao/overpass_frontend_api/api/handler"
+	"github.com/wuhuZhao/overpass_frontend_api/api/handler"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 // customizeRegister registers customize routers.
 func customizedRegister(r *server.Hertz) {
-	r.GET("/ping", handler.Ping)
-
-	// your code ...
+	dsn := "root@123456@tcp(116.205.244.59:3306)/overpass?charset=utf8mb4&parseTime=True&loc=Local"
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		panic(fmt.Errorf("connect database error: %v", err))
+	}
+	v1 := r.Group("/v1")
+	idlHandler := handler.NewIdlHandler(db)
+	{
+		v1.GET("/getAllIdl", idlHandler.FindAll)
+		v1.GET("/getIdl", idlHandler.Find)
+		v1.POST("/createIdl", idlHandler.Create)
+		v1.POST("/updateIdl", idlHandler.Update)
+		v1.POST("/deleteIdl", idlHandler.Delete)
+	}
 }
