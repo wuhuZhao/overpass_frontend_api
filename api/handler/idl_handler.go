@@ -9,6 +9,7 @@ import (
 	"github.com/wuhuZhao/overpass_frontend_api/internal"
 	"gorm.io/gorm"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -60,20 +61,134 @@ func (handler *IdlHandler) Create(ctx context.Context, c *app.RequestContext) {
 
 // Update .
 func (handler *IdlHandler) Update(ctx context.Context, c *app.RequestContext) {
+	var idl *dao.Idl
+	err := c.BindAndValidate(idl)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, internal.Response{
+			Code: -1,
+			Msg:  err.Error(),
+			Data: nil,
+		})
+		return
+	}
+	idl.Version += 1
+	err = handler.dao.UpdateOneById(idl)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, internal.Response{
+			Code: -1,
+			Msg:  err.Error(),
+			Data: nil,
+		})
+		return
+	}
+	c.JSON(http.StatusOK, internal.Response{
+		Code: 0,
+		Msg:  "update success",
+		Data: idl,
+	})
 
 }
 
 // Delete .
 func (handler *IdlHandler) Delete(ctx context.Context, c *app.RequestContext) {
-
+	id := c.PostForm("id")
+	uid, err := strconv.Atoi(id)
+	if err != nil || uid < 0 {
+		c.JSON(http.StatusInternalServerError, internal.Response{
+			Code: -1,
+			Msg:  "id is not a number or a negative number",
+			Data: nil,
+		})
+		return
+	}
+	err = handler.dao.DeleteOne(uint(uid))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, internal.Response{
+			Code: -1,
+			Msg:  "delete error",
+			Data: nil,
+		})
+		return
+	}
+	c.JSON(http.StatusOK, internal.Response{
+		Code: 0,
+		Msg:  "delete success",
+		Data: id,
+	})
 }
 
 // Find .
 func (handler *IdlHandler) Find(ctx context.Context, c *app.RequestContext) {
-
+	id := c.DefaultQuery("id", "-1")
+	name := c.DefaultQuery("name", "")
+	var idl *dao.Idl
+	if id == "-1" && len(name) == 0 {
+		c.JSON(http.StatusInternalServerError, internal.Response{
+			Code: -1,
+			Msg:  "find error",
+			Data: nil,
+		})
+		return
+	} else if id != "-1" {
+		uid, err := strconv.Atoi(id)
+		if err != nil || uid < 0 {
+			c.JSON(http.StatusInternalServerError, internal.Response{
+				Code: -1,
+				Msg:  "id is not a number or a negative number",
+				Data: nil,
+			})
+			return
+		}
+		err = handler.dao.FindById(idl, uid)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, internal.Response{
+				Code: -1,
+				Msg:  err.Error(),
+				Data: nil,
+			})
+			return
+		}
+		c.JSON(http.StatusOK, internal.Response{
+			Code: 0,
+			Msg:  "find success",
+			Data: idl,
+		})
+	} else {
+		err := handler.dao.FindByName(idl, name)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, internal.Response{
+				Code: -1,
+				Msg:  err.Error(),
+				Data: nil,
+			})
+			return
+		}
+		c.JSON(http.StatusOK, internal.Response{
+			Code: 0,
+			Msg:  "find success",
+			Data: idl,
+		})
+	}
 }
 
 // FindAll .
 func (handler *IdlHandler) FindAll(ctx context.Context, c *app.RequestContext) {
-
+	pageSize, pageNum := c.DefaultQuery("pageSize", "10"), c.DefaultQuery("pageNum", "0")
+	var idls []*dao.Idl
+	ps, _ := strconv.Atoi(pageSize)
+	pn, _ := strconv.Atoi(pageNum)
+	err := handler.dao.FindAll(idls, ps, pn)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, internal.Response{
+			Code: -1,
+			Msg:  err.Error(),
+			Data: nil,
+		})
+		return
+	}
+	c.JSON(http.StatusOK, internal.Response{
+		Code: 0,
+		Msg:  "find success",
+		Data: idls,
+	})
 }
