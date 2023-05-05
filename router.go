@@ -12,7 +12,7 @@ import (
 
 // customizeRegister registers customize routers.
 func customizedRegister(r *server.Hertz) {
-	dsn := "root@123456@tcp(116.205.244.59:3306)/overpass?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := "root:123456@tcp(116.205.244.59:3306)/overpass?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic(fmt.Errorf("connect database error: %v", err))
